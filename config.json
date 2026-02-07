@@ -1,0 +1,26 @@
+{
+  "data_file": "Copy of gdp_with_continent_filled.csv",
+  "filters": {
+    "region": "",
+    "year": 0,
+    "country": ""
+  },
+  "operations": {
+    "region_operation": "",
+    "country_operation": "average"
+  },
+  "dashboard": {
+    "title": "World Bank GDP Analysis Dashboard",
+    "show_region_chart": true,
+    "show_year_chart": true,
+    "show_country_chart": true,
+    "region_chart_type": "pie",
+    "year_chart_type": "line",
+    "country_chart_type": "bar"
+  },
+  "visualization": {
+    "color_scheme": "viridis",
+    "figure_size": [12, 8],
+    "dpi": 100
+  }
+}
