@@ -1,97 +1,89 @@
+import matplotlib.pyplot as plt
 import os
 import numpy as np
+from datetime import datetime
 
-import matplotlib
-matplotlib.use('Agg') # prevents conflict with veiwer window 
-import matplotlib.pyplot as plt
-
-
-# application details based ui monlith class
 class Dashboard:
     
-    def __init__(self, output_folder='output_charts'):
+    def __init__(self, output_folder='assets'):
+        """
+        Initialize dashboard
+        """
         self.output_folder = output_folder
         self.chart_files = []
         
         if not os.path.exists(self.output_folder):
             os.makedirs(self.output_folder)
+            
+    # --- VISUALIZATION FUNCTIONS ---
     
-    def create_pie_chart(self, data_dict, title, filename, highlight_key=None):
+    def create_pie_chart(self, data_dict, title, filename):
+        """
+        Creates a Pie Chart showing percentages.
+        """
         print(f"  Generating pie chart: {title}...")
         
         plt.figure(filename, figsize=(10, 8))
         
-        if len(data_dict) > 8:
-            sorted_items = sorted(data_dict.items(), key=lambda x: x[1], reverse=True)
-            top_7 = sorted_items[:7]
-            others_value = sum(item[1] for item in sorted_items[7:])
-            labels = [item[0] for item in top_7] + ['Others']
-            values = [item[1] for item in top_7] + [others_value]
-        else:
-            labels = list(data_dict.keys())
-            values = list(data_dict.values())
-
-        explode = []
-        colors = []
-        standard_colors = ['#ff9999', '#66b3ff', '#99ff99', '#ffcc99', '#ff99cc', '#c2c2f0', '#ffb3e6', '#c4c4c4']
+        labels = list(data_dict.keys())
+        values = list(data_dict.values())
         
-        for i, label in enumerate(labels):
-            if highlight_key and label == highlight_key:
-                explode.append(0.15)
-                colors.append('#E74C3C')
-            else:
-                explode.append(0.05)
-                colors.append(standard_colors[i % len(standard_colors)])
-
+        # Modern color palette
+        colors = ['#ff9999', '#66b3ff', '#99ff99', '#ffcc99', '#ff99cc', '#c2c2f0', '#ffb3e6']
+        
         wedges, texts, autotexts = plt.pie(
-            values, labels=labels, autopct='%1.1f%%', 
-            colors=colors, explode=explode, shadow=True, startangle=90,
-            textprops={'fontsize': 9, 'fontweight': 'bold'}
+            values,
+            labels=labels,
+            autopct='%1.1f%%', # Shows percentage
+            colors=colors[:len(labels)],
+            explode=[0.05] * len(labels), # Slight separation
+            shadow=True,
+            startangle=90,
+            textprops={'fontsize': 10, 'fontweight': 'bold'}
         )
         
+        # Style percentage text
         for autotext in autotexts:
             autotext.set_color('white')
-            autotext.set_fontsize(8)
+            autotext.set_fontsize(10)
             autotext.set_fontweight('bold')
         
         plt.title(title, fontsize=15, fontweight='bold', pad=20)
         plt.axis('equal')
         
         save_path = os.path.join(self.output_folder, filename)
-        plt.savefig(save_path)
-        plt.close()
+        # plt.savefig(save_path) # Uncomment to save
         self.chart_files.append(filename)
         return filename
 
-    def create_bar_chart(self, data_dict, title, xlabel, ylabel, filename, highlight_key=None):
+    def create_bar_chart(self, data_dict, title, xlabel, ylabel, filename):
+        """
+        Creates a Bar Chart for comparing values.
+        """
         print(f"  Generating bar chart: {title}...")
         
         plt.figure(filename, figsize=(12, 6))
         
+        # Sort data for better visualization
         sorted_data = dict(sorted(data_dict.items(), key=lambda x: x[1], reverse=True))
         labels = list(sorted_data.keys())
         values = list(sorted_data.values())
         
+        # Auto-scale large numbers to Billions
         if values and max(values) > 1e9:
             values = [v / 1e9 for v in values]
             ylabel = f"{ylabel} (Billions USD)"
         
-        bar_colors = []
-        for label in labels:
-            if highlight_key and label == highlight_key:
-                bar_colors.append('#E74C3C')
-            else:
-                bar_colors.append('#2E86AB')
+        colors = plt.cm.viridis(np.linspace(0.3, 0.9, len(labels)))
         
-        if highlight_key is None:
-             bar_colors = plt.cm.viridis(np.linspace(0.3, 0.9, len(labels)))
-
-        bars = plt.bar(labels, values, color=bar_colors, edgecolor='black', linewidth=1)
+        bars = plt.bar(labels, values, color=colors, edgecolor='black', linewidth=1)
         
+        # Add value labels on top of bars
         for bar in bars:
             height = bar.get_height()
             plt.text(bar.get_x() + bar.get_width()/2., height,
-                    f'{height:.1f}B', ha='center', va='bottom', fontsize=9, fontweight='bold')
+                    f'{height:.1f}B',
+                    ha='center', va='bottom', fontsize=9, fontweight='bold')
         
         plt.title(title, fontsize=15, fontweight='bold', pad=20)
         plt.xlabel(xlabel, fontsize=12, fontweight='bold')
@@ -101,16 +93,19 @@ class Dashboard:
         plt.tight_layout()
         
         save_path = os.path.join(self.output_folder, filename)
-        plt.savefig(save_path)
-        plt.close()
+        # plt.savefig(save_path) # Uncomment to save
         self.chart_files.append(filename)
         return filename
 
-    def create_line_graph(self, data_dict, title, xlabel, ylabel, filename, highlight_key=None):
+    def create_line_graph(self, data_dict, title, xlabel, ylabel, filename):
+        """
+        Creates a Line Graph to show trends over time.
+        """
         print(f"  Generating line graph: {title}...")
         
         plt.figure(filename, figsize=(12, 6))
         
+        # Ensure years are sorted
         sorted_data = dict(sorted(data_dict.items()))
         x_values = list(sorted_data.keys())
         y_values = list(sorted_data.values())
@@ -119,55 +114,39 @@ class Dashboard:
             y_values = [v / 1e9 for v in y_values]
             ylabel = f"{ylabel} (Billions USD)"
         
-        plt.plot(x_values, y_values, linewidth=3, color='#2E86AB', zorder=1)
-        plt.scatter(x_values, y_values, color='#2E86AB', s=30, zorder=2)
+        plt.plot(x_values, y_values,
+                marker='o', linewidth=3, markersize=8,
+                color='#2E86AB', markerfacecolor='#A23B72',
+                markeredgewidth=2, markeredgecolor='white')
         
+        for x, y in zip(x_values, y_values):
+            plt.text(x, y + (max(y_values)*0.02), f'{y:.1f}B',
+                    ha='center', va='bottom', fontsize=9, fontweight='bold')
         
-        if highlight_key:
-            
-            str_key = str(highlight_key)
-            for x, y in zip(x_values, y_values):
-                if str(x) == str_key:
-                    plt.scatter([x], [y], color='#E74C3C', s=150, zorder=3, edgecolors='white', linewidth=2)
-                    plt.text(x, y + (max(y_values)*0.05), f"{x}", 
-                             ha='center', fontsize=10, fontweight='bold', color='#E74C3C')
-
-        
-        max_val = max(y_values)
-        max_year = x_values[y_values.index(max_val)]
-        plt.text(max_year, max_val + (max_val*0.02), f'Peak: {max_val:.1f}B',
-                ha='center', va='bottom', fontsize=9, fontweight='bold', color='black')
-
         plt.title(title, fontsize=15, fontweight='bold', pad=20)
         plt.xlabel(xlabel, fontsize=12, fontweight='bold')
         plt.ylabel(ylabel, fontsize=12, fontweight='bold')
-        plt.xticks(x_values[::5], rotation=45)
+        plt.xticks(x_values) # Ensure all years are shown
         plt.grid(True, alpha=0.3, linestyle='--')
-        plt.tight_layout()
         
         save_path = os.path.join(self.output_folder, filename)
-        plt.savefig(save_path)
-        plt.close()
+        # plt.savefig(save_path) # Uncomment to save
         self.chart_files.append(filename)
         return filename
 
-    def create_histogram(self, values, title, xlabel, ylabel, filename, highlight_val=None):
+    def create_histogram(self, values, title, xlabel, ylabel, filename, bins=10):
+        """
+        Creates a Histogram to show distribution of data.
+        """
         print(f"  Generating histogram: {title}...")
         
         plt.figure(filename, figsize=(12, 6))
         
         if values and max(values) > 1e9:
             values = [v / 1e9 for v in values]
-            if highlight_val: highlight_val = highlight_val / 1e9 
             xlabel = f"{xlabel} (Billions USD)"
             
-        plt.hist(values, bins=15, color='#66b3ff', edgecolor='black', alpha=0.7)
-        
-        
-        if highlight_val is not None:
-            plt.axvline(highlight_val, color='#E74C3C', linestyle='dashed', linewidth=2)
-            plt.text(highlight_val*1.05, plt.ylim()[1]*0.8, 'You Are Here', 
-                     color='#E74C3C', fontweight='bold', rotation=90)
+        plt.hist(values, bins=bins, color='#66b3ff', edgecolor='black', alpha=0.7)
         
         plt.title(title, fontsize=15, fontweight='bold', pad=20)
         plt.xlabel(xlabel, fontsize=12, fontweight='bold')
@@ -175,7 +154,197 @@ class Dashboard:
         plt.grid(axis='y', alpha=0.3, linestyle='--')
         
         save_path = os.path.join(self.output_folder, filename)
-        plt.savefig(save_path)
-        plt.close()
+        # plt.savefig(save_path) # Uncomment to save
         self.chart_files.append(filename)
         return filename
+
+    def show_all(self):
+        """Displays all generated plots."""
+        print("\nOpening all visualizations...")
+        plt.show()
+    
+    # CONSOLE DISPLAY FUNCTIONS
+    
+    def display_header(self):
+        print("\n")
+        print("  GDP ANALYSIS DASHBOARD  ".center(80))
+        print("\n")
+        print(f"  Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("\n")
+    
+    def display_configuration(self):
+        print(" CONFIGURATION")
+        print("-" * 80)
+        
+        filters = self.config.get('filters', {})
+        operations = self.config.get('operations', {})
+        
+        print(f"  Region Filter:     {filters.get('region', 'All')}")
+        print(f"  Year Filter:       {filters.get('year', 'All')}")
+        print(f"  Country Filter:    {filters.get('country', 'All')}")
+        print(f"  Operation Type:    {operations.get('region_operation', 'average')}")
+        print("\n")
+    
+    def display_statistics(self):
+        print(" STATISTICAL RESULTS")
+        print("-" * 80)
+        
+        if 'region_stats' in self.results:
+            print("\n  Region-wise Statistics:")
+            for region, value in sorted(self.results['region_stats'].items(), 
+                                      key=lambda x: x[1], reverse=True):
+                print(f"    {region:20s}: ${value:,.2f}")
+        
+        if 'year_stats' in self.results:
+            print("\n  Year-wise Statistics:")
+            for year, value in sorted(self.results['year_stats'].items()):
+                print(f"    {year:20d}: ${value:,.2f}")
+        
+        if 'country_stats' in self.results:
+            print("\n  Country Statistics (Top 10):")
+            sorted_countries = sorted(self.results['country_stats'].items(), 
+                                    key=lambda x: x[1], reverse=True)[:10]
+            for country, value in sorted_countries:
+                print(f"    {country:20s}: ${value:,.2f}")
+        
+        print("\n")
+    
+    def display_visualizations(self):
+        print(" VISUALIZATIONS GENERATED")
+        print("-" * 80)
+        
+        if not self.chart_files:
+            print("  No visualizations generated yet.")
+        else:
+            for i, chart in enumerate(self.chart_files, 1):
+                print(f"  {i}. {chart} (Ready to View)")
+        
+    
+    def display_summary(self):
+        print("SUMMARY")
+        print("-" * 80)
+        
+        print(f"  Total Records:        {self.results.get('total_records', 0):,}")
+        print(f"  Filtered Records:     {self.results.get('filtered_count', 0):,}")
+        print(f"  Regions Analyzed:     {len(self.results.get('region_stats', {}))}")
+        print(f"  Countries Analyzed:   {len(self.results.get('country_stats', {}))}")
+        print(f"  Charts Created:       {len(self.chart_files)}")
+        
+        print(" " + "\n")
+    
+    def display_footer(self):
+        print(" ")
+        print(" Analysis Complete!".center(80))
+    
+    # MAIN RENDER FUNCTION
+    
+    def render(self, results):
+      
+        self.results = results
+        
+        self.display_header()
+        self.display_configuration()
+        self.display_statistics()
+        self.display_visualizations()
+        self.display_summary()
+        self.display_footer()
+    
+    def set_results(self, results):
+        self.results = results
+
+
+# FUNCTION
+
+def test_complete_dashboard():
+    
+    print("\n")
+    print("  TESTING DASHBOARD MODULE  ")
+    print(" " + "\n")
+    
+    # Mock configuration
+    mock_config = {
+        'filters': {
+            'region': 'Asia',
+            'year': 2022,
+            'country': ''
+        },
+        'operations': {
+            'region_operation': 'average',
+            'country_operation': 'average'
+        }
+    }
+    
+    # Creating dashboard
+    dashboard = Dashboard(config=mock_config, output_folder='test_dashboard_output')
+    
+    # Mocking data 
+    region_data = {
+        'Asia': 6306477100000,
+        'Europe': 2933565950000,
+        'North America': 8449515984786,
+        'South America': 852279000000,
+        'Africa': 389211533333,
+        'Oceania': 851170400000
+    }
+    
+    year_data = {
+        2018: 3362102339831,
+        2019: 3421799069210,
+        2020: 3342422736842,
+        2021: 3784344368421,
+        2022: 3914471631579
+    }
+    
+    country_data = {
+        'United States': 22255573154358,
+        'China': 15718946000000,
+        'Japan': 4853987400000,
+        'Germany': 4012773800000,
+        'India': 2955770800000
+    }
+    
+    # Creating Visualizations
+    print("Creating visualizations (Windows will open at the end)...\n")
+    
+    dashboard.create_pie_chart(
+        region_data,
+        'GDP Distribution by Region',
+        'region_pie.png'
+    )
+    
+    dashboard.create_line_graph(
+        year_data,
+        'GDP Trend Over Years',
+        'Year',
+        'Average GDP',
+        'year_line.png'
+    )
+    
+    dashboard.create_bar_chart(
+        country_data,
+        'Top Countries by GDP',
+        'Country',
+        'GDP',
+        'country_bar.png'
+    )
+    
+    # Mocking Results
+    mock_results = {
+        'total_records': 95,
+        'filtered_count': 20,
+        'region_stats': region_data,
+        'year_stats': year_data,
+        'country_stats': country_data
+    }
+    
+    # Rendering Dashboard text
+    print()
+    dashboard.render(mock_results)
+
+    # FINAL STEP: Show all plots
+    print("Opening all graphs now...")
+    plt.show()
+
+
+if __name__ == "__main__":
+    test_complete_dashboard()
