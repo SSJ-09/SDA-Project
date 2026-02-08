@@ -1,36 +1,47 @@
 import csv
 import json
 import os
-import itertools 
 
 def load_config(filePath):
     if not os.path.exists(filePath):
         raise FileNotFoundError(f"'{filePath}' not found.")
     with open(filePath, 'r') as file:
-        return json.load(file) #returns the json as dictionary
+        return json.load(file)
 
 def processRow(row, years):
+    """
+    Extracts data for each year from a CSV row.
+    """
     country = row.get('Country Name')
     region = row.get('Continent') 
-    if not country or not region: #discarding any row with no country or continent name
+    
+    # Validation
+    if not country or not region: 
         return []
+    
     country = country.strip()
     region = region.strip()
-    def extractYears(year):
-        value_str = row.get(year)     
+    
+    extracted_data = []
+    
+    for year in years:
+        value_str = row.get(year)
         if not value_str:
-            return None
-        try:   
-            return 
-            {
+            continue
+            
+        try:
+            # Create the dictionary on one line or inside specific brackets to avoid syntax errors
+            record = {
                 'Country Name': country,
                 'Region': region, 
                 'Year': int(year),     
                 'Value': float(value_str)  
             }
+            extracted_data.append(record)
         except ValueError:
-            return None
-    return list(filter(None, map(extractYears, years)))
+            continue
+            
+    return extracted_data
 
 def load_gdp_data(filePath):
     if not os.path.exists(filePath):
@@ -40,11 +51,15 @@ def load_gdp_data(filePath):
         reader = csv.DictReader(file)
 
         allHeaders = reader.fieldnames
-        years = list(filter(lambda h: h.isdigit(), allHeaders)) #isolating year columns 
+        # Isolate year columns (headers that are digits)
+        years = list(filter(lambda h: h.isdigit(), allHeaders)) 
 
         if not years:
-            raise ValueError("Could not find any Year columns in the CSV.")
+            raise ValueError("Could not find any Year columns in CSV.")
 
-        nestedData = map(lambda row: processRow(row, years), reader)
-        flatData = list(itertools.chain.from_iterable(nestedData))
-    return flatData
+        all_records = []
+        for row in reader:
+            # Extend the main list with the results from this row
+            all_records.extend(processRow(row, years))
+            
+        return all_records

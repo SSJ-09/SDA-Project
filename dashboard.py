@@ -1,142 +1,167 @@
-import matplotlib
-matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os
+import numpy as np
 from datetime import datetime
-
 
 class Dashboard:
     
-    def __init__(self, config=None, output_folder='assets'):
+    def __init__(self, output_folder='assets'):
         """
         Initialize dashboard
-        
-        Args:
-            config: Configuration dictionary (from Partner A)
-            output_folder: Folder for output files
         """
-        self.config = config or {}
         self.output_folder = output_folder
-        self.results = {}
         self.chart_files = []
         
-        # Create output folder
         if not os.path.exists(self.output_folder):
             os.makedirs(self.output_folder)
-            print(f"Created output folder: {self.output_folder}/")
+            
+    # --- VISUALIZATION FUNCTIONS ---
     
-   # VISUALIZATION FUNCTIONS
-   
     def create_pie_chart(self, data_dict, title, filename):
-        print(f"  Creating pie chart: {filename}...")
+        """
+        Creates a Pie Chart showing percentages.
+        """
+        print(f"  Generating pie chart: {title}...")
         
-        plt.figure(figsize=(10, 8))
+        plt.figure(filename, figsize=(10, 8))
         
         labels = list(data_dict.keys())
         values = list(data_dict.values())
         
-        colors = ['#ff9999', '#66b3ff', '#99ff99', '#ffcc99', '#ff99cc', '#c2c2f0']
+        # Modern color palette
+        colors = ['#ff9999', '#66b3ff', '#99ff99', '#ffcc99', '#ff99cc', '#c2c2f0', '#ffb3e6']
         
         wedges, texts, autotexts = plt.pie(
             values,
             labels=labels,
-            autopct='%1.1f%%',
+            autopct='%1.1f%%', # Shows percentage
             colors=colors[:len(labels)],
-            explode=[0.05] * len(labels),
+            explode=[0.05] * len(labels), # Slight separation
             shadow=True,
             startangle=90,
             textprops={'fontsize': 10, 'fontweight': 'bold'}
         )
         
+        # Style percentage text
         for autotext in autotexts:
             autotext.set_color('white')
-            autotext.set_fontsize(11)
+            autotext.set_fontsize(10)
             autotext.set_fontweight('bold')
         
-        plt.title(title, fontsize=16, fontweight='bold', pad=20)
+        plt.title(title, fontsize=15, fontweight='bold', pad=20)
         plt.axis('equal')
         
-        filepath = os.path.join(self.output_folder, filename)
-        plt.savefig(filepath, dpi=100, bbox_inches='tight')
-        plt.close()
-        
-        self.chart_files.append(filepath)
-        print(f" Saved: {filepath}")
-        return filepath
-    
-    def create_line_graph(self, data_dict, title, xlabel, ylabel, filename):
-        print(f"  Creating line graph: {filename}...")
-        
-        plt.figure(figsize=(12, 6))
-        
-        sorted_data = dict(sorted(data_dict.items()))
-        x_values = list(sorted_data.keys())
-        y_values = list(sorted_data.values())
-        
-        if max(y_values) > 1000000000:
-            y_values = [v / 1e9 for v in y_values]
-            ylabel = f"{ylabel} (Billions USD)"
-        
-        plt.plot(x_values, y_values,
-                marker='o', linewidth=2.5, markersize=8,
-                color='#2E86AB', markerfacecolor='#A23B72',
-                markeredgewidth=2, markeredgecolor='white')
-        
-        for x, y in zip(x_values, y_values):
-            plt.text(x, y, f'${y:.1f}B',
-                    ha='center', va='bottom', fontsize=9, fontweight='bold')
-        
-        plt.title(title, fontsize=16, fontweight='bold', pad=20)
-        plt.xlabel(xlabel, fontsize=12, fontweight='bold')
-        plt.ylabel(ylabel, fontsize=12, fontweight='bold')
-        plt.grid(True, alpha=0.3, linestyle='--')
-        
-        filepath = os.path.join(self.output_folder, filename)
-        plt.savefig(filepath, dpi=100, bbox_inches='tight')
-        plt.close()
-        
-        self.chart_files.append(filepath)
-        print(f" Saved: {filepath}")
-        return filepath
-    
+        save_path = os.path.join(self.output_folder, filename)
+        # plt.savefig(save_path) # Uncomment to save
+        self.chart_files.append(filename)
+        return filename
+
     def create_bar_chart(self, data_dict, title, xlabel, ylabel, filename):
-        print(f"  Creating bar chart: {filename}...")
+        """
+        Creates a Bar Chart for comparing values.
+        """
+        print(f"  Generating bar chart: {title}...")
         
-        plt.figure(figsize=(12, 6))
+        plt.figure(filename, figsize=(12, 6))
         
+        # Sort data for better visualization
         sorted_data = dict(sorted(data_dict.items(), key=lambda x: x[1], reverse=True))
         labels = list(sorted_data.keys())
         values = list(sorted_data.values())
         
-        if max(values) > 1000000000:
+        # Auto-scale large numbers to Billions
+        if values and max(values) > 1e9:
             values = [v / 1e9 for v in values]
             ylabel = f"{ylabel} (Billions USD)"
         
-        import numpy as np
         colors = plt.cm.viridis(np.linspace(0.3, 0.9, len(labels)))
         
-        bars = plt.bar(labels, values, color=colors, edgecolor='black', linewidth=1.2)
+        bars = plt.bar(labels, values, color=colors, edgecolor='black', linewidth=1)
         
+        # Add value labels on top of bars
         for bar in bars:
             height = bar.get_height()
             plt.text(bar.get_x() + bar.get_width()/2., height,
-                    f'${height:.1f}B',
+                    f'{height:.1f}B',
                     ha='center', va='bottom', fontsize=9, fontweight='bold')
         
-        plt.title(title, fontsize=16, fontweight='bold', pad=20)
+        plt.title(title, fontsize=15, fontweight='bold', pad=20)
         plt.xlabel(xlabel, fontsize=12, fontweight='bold')
         plt.ylabel(ylabel, fontsize=12, fontweight='bold')
         plt.xticks(rotation=45, ha='right')
         plt.grid(axis='y', alpha=0.3, linestyle='--')
         plt.tight_layout()
         
-        filepath = os.path.join(self.output_folder, filename)
-        plt.savefig(filepath, dpi=100, bbox_inches='tight')
-        plt.close()
+        save_path = os.path.join(self.output_folder, filename)
+        # plt.savefig(save_path) # Uncomment to save
+        self.chart_files.append(filename)
+        return filename
+
+    def create_line_graph(self, data_dict, title, xlabel, ylabel, filename):
+        """
+        Creates a Line Graph to show trends over time.
+        """
+        print(f"  Generating line graph: {title}...")
         
-        self.chart_files.append(filepath)
-        print(f"  Saved: {filepath}")
-        return filepath
+        plt.figure(filename, figsize=(12, 6))
+        
+        # Ensure years are sorted
+        sorted_data = dict(sorted(data_dict.items()))
+        x_values = list(sorted_data.keys())
+        y_values = list(sorted_data.values())
+        
+        if y_values and max(y_values) > 1e9:
+            y_values = [v / 1e9 for v in y_values]
+            ylabel = f"{ylabel} (Billions USD)"
+        
+        plt.plot(x_values, y_values,
+                marker='o', linewidth=3, markersize=8,
+                color='#2E86AB', markerfacecolor='#A23B72',
+                markeredgewidth=2, markeredgecolor='white')
+        
+        for x, y in zip(x_values, y_values):
+            plt.text(x, y + (max(y_values)*0.02), f'{y:.1f}B',
+                    ha='center', va='bottom', fontsize=9, fontweight='bold')
+        
+        plt.title(title, fontsize=15, fontweight='bold', pad=20)
+        plt.xlabel(xlabel, fontsize=12, fontweight='bold')
+        plt.ylabel(ylabel, fontsize=12, fontweight='bold')
+        plt.xticks(x_values) # Ensure all years are shown
+        plt.grid(True, alpha=0.3, linestyle='--')
+        
+        save_path = os.path.join(self.output_folder, filename)
+        # plt.savefig(save_path) # Uncomment to save
+        self.chart_files.append(filename)
+        return filename
+
+    def create_histogram(self, values, title, xlabel, ylabel, filename, bins=10):
+        """
+        Creates a Histogram to show distribution of data.
+        """
+        print(f"  Generating histogram: {title}...")
+        
+        plt.figure(filename, figsize=(12, 6))
+        
+        if values and max(values) > 1e9:
+            values = [v / 1e9 for v in values]
+            xlabel = f"{xlabel} (Billions USD)"
+            
+        plt.hist(values, bins=bins, color='#66b3ff', edgecolor='black', alpha=0.7)
+        
+        plt.title(title, fontsize=15, fontweight='bold', pad=20)
+        plt.xlabel(xlabel, fontsize=12, fontweight='bold')
+        plt.ylabel(ylabel, fontsize=12, fontweight='bold')
+        plt.grid(axis='y', alpha=0.3, linestyle='--')
+        
+        save_path = os.path.join(self.output_folder, filename)
+        # plt.savefig(save_path) # Uncomment to save
+        self.chart_files.append(filename)
+        return filename
+
+    def show_all(self):
+        """Displays all generated plots."""
+        print("\nOpening all visualizations...")
+        plt.show()
     
     # CONSOLE DISPLAY FUNCTIONS
     
@@ -167,7 +192,7 @@ class Dashboard:
         if 'region_stats' in self.results:
             print("\n  Region-wise Statistics:")
             for region, value in sorted(self.results['region_stats'].items(), 
-                                       key=lambda x: x[1], reverse=True):
+                                      key=lambda x: x[1], reverse=True):
                 print(f"    {region:20s}: ${value:,.2f}")
         
         if 'year_stats' in self.results:
@@ -192,7 +217,7 @@ class Dashboard:
             print("  No visualizations generated yet.")
         else:
             for i, chart in enumerate(self.chart_files, 1):
-                print(f"  {i}. {chart}")
+                print(f"  {i}. {chart} (Ready to View)")
         
     
     def display_summary(self):
@@ -279,7 +304,7 @@ def test_complete_dashboard():
     }
     
     # Creating Visualizations
-    print("Creating visualizations\n")
+    print("Creating visualizations (Windows will open at the end)...\n")
     
     dashboard.create_pie_chart(
         region_data,
@@ -312,10 +337,14 @@ def test_complete_dashboard():
         'country_stats': country_data
     }
     
-    # Rendering Dashboard
+    # Rendering Dashboard text
     print()
     dashboard.render(mock_results)
 
+    # FINAL STEP: Show all plots
+    print("Opening all graphs now...")
+    plt.show()
 
-if __name__ == "main":
+
+if __name__ == "__main__":
     test_complete_dashboard()

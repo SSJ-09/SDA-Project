@@ -1,185 +1,126 @@
-"""
-Final Integration
-Loads GDP data, applies configuration filters,
-computes statistics, and generates a visualization dashboard
-"""
-
 import dataLoader
-from modules.dashboard import Dashboard
+from dashboard import Dashboard
 
-print("\n" + "="*80)
-print("  FINAL INTEGRATION - COMPLETE GDP ANALYSIS SYSTEM")
-print("="*80 + "\n")
+def calculate_average_stats(raw_data):
+    """
+    Calculates Averages (AVG) instead of SUMs.
+    Returns:
+      1. region_avg_2020: {Region: AvgGDP} for 2020
+      2. year_avg: {Year: AvgGDP} for all years
+      3. countries_2020: {Country: GDP} for 2020 (for contribution chart)
+    """
+    # 1. Region Average in 2020
+    region_sums_2020 = {}
+    region_counts_2020 = {}
+    
+    # 2. Year Average (All Regions/Countries combined)
+    year_sums = {}
+    year_counts = {}
+    
+    # 3. Country Data for 2020
+    countries_2020 = {}
 
-# Load configuration file and GDP dataset
+    for row in raw_data:
+        region = row['Region']
+        year = row['Year']
+        val = row['Value']
+        country = row['Country Name']
 
-print("STEP 1: Loading configuration (Partner A)...")
-try:
-    config = dataLoader.load_config("config.json")
-    print(" Configuration loaded successfully")
-    print(f"  Filters: {config.get('filters', {})}")
-    print(f"  Operations: {config.get('operations', {})}\n")
-except FileNotFoundError as e:
-    print(f" Error: {e}")
-    exit(1)
+        # --- LOGIC 1: Average GDP per Year (Trend) ---
+        if year not in year_sums:
+            year_sums[year] = 0
+            year_counts[year] = 0
+        year_sums[year] += val
+        year_counts[year] += 1
 
-print("STEP 2: Loading GDP data (Partner A)...")
-try:
-    csv_file = "Copy of gdp_with_continent_filled.csv"
-    raw_data = dataLoader.load_gdp_data(csv_file)
-    print(f" Successfully loaded {len(raw_data)} records from CSV")
-    print(f"  Sample record: {raw_data[0] if raw_data else 'No data'}\n")
-except FileNotFoundError as e:
-    print(f" Error: {e}")
-    exit(1)
+        # --- LOGIC 2: Average GDP per Region (Only for 2020) ---
+        if year == 2020:
+            if region not in region_sums_2020:
+                region_sums_2020[region] = 0
+                region_counts_2020[region] = 0
+            region_sums_2020[region] += val
+            region_counts_2020[region] += 1
+            
+            # Store country data for the contribution chart
+            countries_2020[country] = val
 
-# Filter GDP data based on configuration values
+    # Final Calculation: Divide Sum by Count to get Average
+    region_avg_2020 = {r: region_sums_2020[r]/region_counts_2020[r] for r in region_sums_2020}
+    year_avg = {y: year_sums[y]/year_counts[y] for y in year_sums}
+    
+    return region_avg_2020, year_avg, countries_2020
 
-print("STEP 3: Processing data using functional programming...")
+def main():
+    print("\n" + "="*60)
+    print("      FINAL GDP ANALYSIS (AVERAGE BASED)")
+    print("="*60 + "\n")
 
-filters = config.get('filters', {})
-filter_region = filters.get('region', '')
-filter_year = filters.get('year', 0)
-filter_country = filters.get('country', '')
+    # 1. Load Data
+    try:
+        csv_file = "Copy of gdp_with_continent_filled.csv"
+        raw_data = dataLoader.load_gdp_data(csv_file) 
+        print(f" [Success] Loaded {len(raw_data)} records from {csv_file}")
+    except Exception as e:
+        print(f" [Error] Could not load data: {e}")
+        return
 
-filtered_data = raw_data
+    # 2. Process Data (Calculate Averages)
+    print(" [Processing] Calculating Region and Year Averages...")
+    region_avg_2020, year_avg, countries_2020 = calculate_average_stats(raw_data)
 
-if filter_region:
-    filtered_data = list(filter(lambda x: x['Region'] == filter_region, filtered_data))
-    print(f" Filtered by region '{filter_region}': {len(filtered_data)} records")
+    # 3. Initialize Dashboard
+    # NOTE: Output folder will be 'assets'
+    dash = Dashboard(output_folder='assets')
 
-if filter_year:
-    filtered_data = list(filter(lambda x: x['Year'] == filter_year, filtered_data))
-    print(f" Filtered by year {filter_year}: {len(filtered_data)} records")
+    # --- GENERATING THE 5 REQUIRED GRAPHS ---
 
-if filter_country:
-    filtered_data = list(filter(lambda x: x['Country Name'] == filter_country, filtered_data))
-    print(f" Filtered by country '{filter_country}': {len(filtered_data)} records")
+    print("\n [Visualization] Generating Graphs...")
 
-print(f" Total filtered records: {len(filtered_data)}\n")
-
-# Compute GDP statistics using functional programming
-
-print("STEP 4: Computing statistics using functional programming...")
-
-operation_type = config.get('operations', {}).get('region_operation', 'average')
-
-def compute_average(values):
-    """Returns the average of a numeric list"""
-    if not values:
-        return 0.0
-    from functools import reduce
-    total = reduce(lambda x, y: x + y, values, 0)
-    return total / len(values)
-
-def compute_sum(values):
-    """Returns the sum of a numeric list"""
-    if not values:
-        return 0.0
-    from functools import reduce
-    return reduce(lambda x, y: x + y, values, 0)
-
-def group_by_field(data, field):
-    """Groups records by a given dictionary key"""
-    unique_values = set(map(lambda x: x[field], data))
-    return {
-        value: list(filter(lambda x: x[field] == value, data))
-        for value in unique_values
-    }
-
-regions_grouped = group_by_field(filtered_data, 'Region')
-region_stats = {}
-
-for region, records in regions_grouped.items():
-    values = list(map(lambda x: x['Value'], records))
-    if operation_type == 'sum':
-        region_stats[region] = compute_sum(values)
-    else:
-        region_stats[region] = compute_average(values)
-
-print(f" Computed {operation_type} for {len(region_stats)} regions")
-
-years_grouped = group_by_field(filtered_data, 'Year')
-year_stats = {}
-
-for year, records in years_grouped.items():
-    values = list(map(lambda x: x['Value'], records))
-    year_stats[year] = compute_average(values)
-
-print(f" Computed statistics for {len(year_stats)} years")
-
-countries_grouped = group_by_field(filtered_data, 'Country Name')
-country_stats = {}
-
-for country, records in countries_grouped.items():
-    values = list(map(lambda x: x['Value'], records))
-    country_stats[country] = compute_average(values)
-
-print(f" Computed statistics for {len(country_stats)} countries\n")
-
-# Generate dashboard and visual charts
-
-print("STEP 5: Creating dashboard and visualizations (Partner B - YOUR MODULE!)...\n")
-
-dashboard = Dashboard(config=config, output_folder='final_output')
-
-print("Generating charts with REAL GDP data...\n")
-
-if region_stats:
-    dashboard.create_pie_chart(
-        region_stats,
-        f'GDP Distribution by Region ({operation_type.capitalize()})',
-        'region_gdp_pie.png'
+    # Set 1: Region Avg in 2020 vs Others (Bar & Pie)
+    dash.create_bar_chart(
+        region_avg_2020,
+        "Region Average GDP in 2020",
+        "Region",
+        "Average GDP",
+        "1_region_avg_2020_bar.png"
+    )
+    
+    dash.create_pie_chart(
+        region_avg_2020,
+        "Region Average GDP Share (2020)",
+        "2_region_avg_2020_pie.png"
     )
 
-if year_stats:
-    dashboard.create_line_graph(
-        year_stats,
-        'GDP Trend Over Years (Average)',
-        'Year',
-        'GDP',
-        'year_gdp_trend.png'
+    # Set 2: Region/Global Avg during other years (Line & Histogram)
+    dash.create_line_graph(
+        year_avg,
+        "Average Global GDP Trend (2018-2022)",
+        "Year",
+        "Average GDP",
+        "3_year_avg_trend_line.png"
     )
 
-if country_stats:
-    top_10_countries = dict(sorted(
-        country_stats.items(),
-        key=lambda x: x[1],
-        reverse=True
-    )[:10])
-
-    dashboard.create_bar_chart(
-        top_10_countries,
-        'Top 10 Countries by GDP (Average)',
-        'Country',
-        'GDP',
-        'top_countries_bar.png'
+    dash.create_histogram(
+        list(year_avg.values()),
+        "Distribution of Yearly Average GDP",
+        "GDP Value",
+        "Frequency",
+        "4_year_avg_hist.png",
+        bins=5
     )
 
-results = {
-    'total_records': len(raw_data),
-    'filtered_count': len(filtered_data),
-    'region_stats': region_stats,
-    'year_stats': year_stats,
-    'country_stats': country_stats
-}
+    # Set 3: Countries Contribution (Pie)
+    # Get top 8 countries to make the chart readable
+    top_countries = dict(sorted(countries_2020.items(), key=lambda x: x[1], reverse=True)[:8])
+    dash.create_pie_chart(
+        top_countries,
+        "Top Countries Contribution (2020)",
+        "5_countries_2020_pie.png"
+    )
 
-dashboard.render(results)
+    # 4. Show All
+    dash.show_all()
+    print("\n [Done] Analysis Complete. Graphs saved to 'assets/' folder.")
 
-print("-"*80)
-print("COMPLETE INTEGRATION SUCCESSFUL!")
-print("-"*80)
-print()
-print("What happened:")
-print("  1. Partner A: Loaded config.json")
-print("  2. Partner A: Loaded GDP data from CSV")
-print("  3. Partner A: Filtered data based on config")
-print("  4. Partner A: Computed statistics using functional programming")
-print("  5. Partner B: Created 3 professional visualizations")
-print("  6. Partner B: Displayed complete dashboard")
-print()
-print("Output files saved to: final_output/")
-print("  - region_gdp_pie.png")
-print("  - year_gdp_trend.png")
-print("  - top_countries_bar.png")
-print("-"*80 + "\n")
+if __name__ == "__main__":
+    main()
