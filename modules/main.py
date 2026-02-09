@@ -63,6 +63,17 @@ def main():
             highlight_val=current_val      
         )
 
+       
+
+        
+        dash.create_bar_chart(
+            results['graph_5_top10'],
+            f"Top Contributors: {config['region']} ({config['year']})",
+            "Contributors", "GDP", "5_regional_top10_bar.png",
+            highlight_key=None 
+        )
+       
+
         app = dashboardViewer.DashboardViewer("output_charts", results)
     except Exception as e:
         print(f"Error: {e}")

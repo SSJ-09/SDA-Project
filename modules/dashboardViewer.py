@@ -56,20 +56,20 @@ class DashboardViewer:
         self.add_content()
         
     # section adder
+    # section adder
     def add_content(self):
         self.add_header()
         self.add_summary()
 
-        graph_list = [
-            ("1_global_comparison_bar.png", "Global Context: Region Comparison"),
-            ("2_global_comparison_pie.png", "Global Context: Market Share"),
-            ("3_historical_trend_line.png", "Regional Analysis: Historical Trend"),
-            ("4_historical_dist_hist.png", "Statistical Analysis: Distribution"),
-           
-        ]
+        try:
+            files = [f for f in os.listdir(self.output_folder) if f.lower().endswith('.png')]
+            files.sort()           
+            for filename in files:               
+                               
+                self.add_graph_section(filename)
 
-        for filename, title in graph_list:
-            self.add_graph_section(filename, title)
+        except Exception as e:
+            tk.Label(self.scroll_frame, text=f"Error reading folder: {e}", fg="red").pack()
             
         self.add_footer()
 
@@ -93,11 +93,11 @@ class DashboardViewer:
         lbl.pack(pady=20, padx=50, fill="x")
 
     # graph adder
-    def add_graph_section(self, filename, title):
+    def add_graph_section(self, filename):
         container = tk.Frame(self.scroll_frame, bg='#2c3e50', pady=15)
         container.pack(fill=tk.X, padx=50, pady=20)
         
-        tk.Label(container, text=title, font=('Arial Black', 20, 'bold'), fg='#3498db', bg='#2c3e50').pack(pady=15)
+        
         
         path = os.path.join(self.output_folder, filename)
         if os.path.exists(path):
