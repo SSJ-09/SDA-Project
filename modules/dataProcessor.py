@@ -3,9 +3,26 @@ from itertools import groupby
 #Helper functions
 
 def Filter(data, key, value):
+    """
+Filters a list of dictionaries based on a specific key-value match.
+Args:
+    data (list): A list of dictionaries containing dataset records.
+    key (str): The key to check in each dictionary.
+    value: The value that the key must match.
+Returns:
+    list: A filtered list of dictionaries where key equals value.
+"""
     return list(filter(lambda x: x.get(key) == value, data))
 
 def calculate(values, operation):
+    """
+Performs aggregation (sum or average) on a list of numeric values.
+Args:
+    values (list): A list of numeric values.
+    operation (str): The aggregation type ('sum' or 'avg').
+Returns:
+    float: The calculated result based on the operation.
+"""
     if not values:
         return 0.0
     
@@ -16,7 +33,17 @@ def calculate(values, operation):
     return total 
 
 def keyAggregation(data, group_key, value_key, operation):
-   
+    """
+Groups data by a specific key and performs aggregation on another key.
+Args:
+    data (list): A list of dictionaries representing dataset records.
+    group_key (str): The key used to group the data.
+    value_key (str): The key whose values will be aggregated.
+    operation (str): The aggregation type ('sum' or 'avg').
+Returns:
+    dict: A dictionary with group_key values as keys and aggregated results as values.
+"""
+
     sorted_data = sorted(data, key=lambda x: x[group_key])
     grouped_iter = groupby(sorted_data, key=lambda x: x[group_key])
     return {
@@ -27,6 +54,15 @@ def keyAggregation(data, group_key, value_key, operation):
 
 
 def process_data(data, config):
+    """
+Processes dataset according to user configuration to prepare data for the graphs
+Args:
+    data (list): A list of dictionaries representing dataset records.
+    config (dict): Configuration containing 'region', 'year', and 'operation'.
+Returns:
+    dict: A dictionary with processed results for the graphs
+"""
+
     region = config['region'] 
     year = config['year']     
     operation = config['operation'] 

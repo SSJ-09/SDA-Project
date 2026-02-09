@@ -9,7 +9,19 @@ def load_config(filePath):
     with open(filePath, 'r') as file:
         return json.load(file) #returns the json as dictionary
 
-def processRow(row, years):
+def normalizeRow(row, years):
+    """
+    Converts a single CSV row (wide format) into a list of yearly records (long format).
+    Example:
+        Input: {'Country': 'China', '2015': '100', '2016': '110'}
+        Output: [{'Country': 'China', 'Year': 2015, 'Value': 100}, 
+                 {'Country': 'China', 'Year': 2016, 'Value': 110}]
+    Args:
+        row (dict): A dictionary representing one row from the CSV.
+        years (list): A list of column names that represent years (e.g., ['2015', '2016']).
+    Returns:
+        list: A list of dictionaries, where each dictionary represents one specific year's data.
+    """
     country = row.get('Country Name')
     region = row.get('Continent') 
     if not country or not region: #discarding any row with no country or continent name
@@ -32,6 +44,13 @@ def processRow(row, years):
     return list(filter(None, map(extractYears, years)))
 
 def load_gdp_data(filePath):
+    """
+    Reads the entire GDP CSV file and converts it into a clean list of records.
+    Args:
+        filePath (str): The path to the CSV file.
+    Returns:
+        list: A flat list of dictionaries containing Country, Region, Year, and Value(GDP).
+    """
     if not os.path.exists(filePath):
         raise FileNotFoundError(f"'{filePath}' not found.")
 
@@ -44,6 +63,6 @@ def load_gdp_data(filePath):
         if not years:
             raise ValueError("Could not find any Year columns in the CSV.")
 
-        nestedData = map(lambda row: processRow(row, years), reader)
+        nestedData = map(lambda row: normalizeRow(row, years), reader)
         flatData = list(itertools.chain.from_iterable(nestedData))
     return flatData
